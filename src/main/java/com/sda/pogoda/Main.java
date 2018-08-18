@@ -5,7 +5,9 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -16,19 +18,41 @@ import java.util.Iterator;
 
 public class Main {
 
-    static String url = "http://api.apixu.com/v1/current.json?key=6b74cc3f2a0b4eda98d72628181808&q=";
+    static String urlForWeather = "http://api.apixu.com/v1/current.json?key=6b74cc3f2a0b4eda98d72628181808&q=";
+    static String urlForPlaceFirstPart = "https://maps.googleapis.com/maps/api/geocode/json?address=";
+    static String urlForPlaceLastPart="&key=AIzaSyB76-rDrOkOr8xfXXoTj7NEeevzergovws";
+
     static HashMap<String,HashMap<String,Object>> weather = new HashMap<String, HashMap<String,Object>>();
 
     public static void main(String[] args) {
         String town = "Torun";
         checkWethear(town);
+        saveMap(town);
 
-        String mapUrl = "http://maps.googleapis.com/maps/api/staticmap?center="
-                + weather.get("location").get("lat") + "," + weather.get("location").get("lon") + "&size=400x400&zoom=10";
-         saveMap(mapUrl);
+        String place = "Plac Rapackiego";
+
+        showCoordinates(place);
     }
 
-    static void saveMap (String mapUrl){
+   static void showCoordinates(String place) {
+
+       try {
+           JSONObject json = new JSONObject(IOUtils.toString(new URL(urlForPlaceFirstPart+URLEncoder.encode(place,"UTF-8")+urlForPlaceLastPart), Charset.forName("UTF-8")));
+           System.out.println("The coordinates for "+place+" are :\nIon = "+
+           json.getJSONArray("results").getJSONObject(Integer.parseInt("0")).getJSONObject("geometry").getJSONObject("location").get("lat").toString()
+           + "\nIng = "+
+           json.getJSONArray("results").getJSONObject(Integer.parseInt("0")).getJSONObject("geometry").getJSONObject("location").get("lng").toString()
+           );
+
+
+       } catch (IOException e) {
+           e.printStackTrace();
+       }
+    }
+
+    static void saveMap (String town){
+        String mapUrl = urlForWeather +town + "&size=400x400&zoom=10";
+
         try (InputStream input = new URL(mapUrl).openStream()) {
             Files.copy(input, Paths.get(weather.get("location").get("name")+".jpg"));
         } catch (IOException e) {
@@ -43,7 +67,7 @@ public class Main {
 
    static void checkWethear(String town) {
         try {
-           JSONObject json = new JSONObject(IOUtils.toString(new URL(url + town), Charset.forName("UTF-8")));
+           JSONObject json = new JSONObject(IOUtils.toString(new URL(urlForWeather + town), Charset.forName("UTF-8")));
 
             Iterator<String> keys = json.keys();
             for (Iterator <String> it= keys; it.hasNext();){
@@ -76,4 +100,18 @@ public class Main {
         }
 
     }
-}
+
+   /* static void unwrapper(JSONObject json) {
+
+                   Iterator<String> keys = json.keys();
+                        for (Iterator <String> it= keys; it.hasNext();) {
+                            String k = it.next();
+                            if (json.get(k).getClass().getName().contains("JSONObject")) {
+                               unwrapper(json);
+                                }
+
+                        }
+
+
+            }*/
+            }
