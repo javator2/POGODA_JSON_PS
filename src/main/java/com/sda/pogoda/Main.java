@@ -4,8 +4,11 @@ import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.HashMap;
 
 import java.util.Iterator;
@@ -19,11 +22,27 @@ public class Main {
     public static void main(String[] args) {
         String town = "Torun";
         checkWethear(town);
+
+        String mapUrl = "http://maps.googleapis.com/maps/api/staticmap?center="
+                + weather.get("location").get("lat") + "," + weather.get("location").get("lon") + "&size=400x400&zoom=10";
+         saveMap(mapUrl);
+    }
+
+    static void saveMap (String mapUrl){
+        try (InputStream input = new URL(mapUrl).openStream()) {
+            Files.copy(input, Paths.get(weather.get("location").get("name")+".jpg"));
+        } catch (IOException e) {
+            try {
+                Files.delete(Paths.get(weather.get("location").get("name")+".jpg"));
+                saveMap(mapUrl);
+            } catch (IOException e1) {
+                e1.printStackTrace();
+            }
         }
+    }
 
    static void checkWethear(String town) {
         try {
-           System.out.println(IOUtils.toString(new URL(url + town), Charset.forName("UTF-8"))+"\n\n");
            JSONObject json = new JSONObject(IOUtils.toString(new URL(url + town), Charset.forName("UTF-8")));
 
             Iterator<String> keys = json.keys();
@@ -37,7 +56,6 @@ public class Main {
                      Iterator<String> keys3 = json.getJSONObject(k).getJSONObject(k2).keys();
                      for (Iterator <String> it3= keys3; it3.hasNext();) {
                          String k3 = it3.next();
-                         System.out.println(json.getJSONObject(k).getJSONObject(k2).get(k3));
                          currentInfo.put(k3,json.getJSONObject(k).getJSONObject(k2).get(k3));
                      }
                  } else {
@@ -48,8 +66,6 @@ public class Main {
              weather.put(k,currentInfo);
             }
 
-
-            System.out.println(weather.toString());
             System.out.println("\nThe weather in "+weather.get("location").get("name")+" is "
                     +weather.get("current").get("text"));
 
